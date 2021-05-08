@@ -1,0 +1,10 @@
+name: cs231n
+channels:
+  - defaults
+dependencies:
+  - numpy
+  - scipy
+  - tensorflow
+  - keras
+  - matplotlib
+  - pip
