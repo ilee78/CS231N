@@ -6,5 +6,7 @@ dependencies:
   - scipy
   - tensorflow
   - keras
+  - pandas
+  - Pillow
   - matplotlib
   - pip
