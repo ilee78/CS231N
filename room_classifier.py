@@ -1,20 +1,21 @@
+import os
+import matplotlib.pyplot as plt
+from mlxtend.plotting import plot_confusion_matrix
+import pandas as pd
+import shutil
+from sklearn import model_selection
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, classification_report
+import time
+from tqdm import tqdm
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.applications import * #Efficient Net included here
 from tensorflow.keras import models
 from tensorflow.keras import layers
-from keras.preprocessing.image import ImageDataGenerator
-import os
-import shutil
-import time
-import pandas as pd
-from sklearn import model_selection
-from tqdm import tqdm
 from tensorflow.keras import optimizers
-import tensorflow as tf#Use this to check if the GPU is configured correctly
+from keras.preprocessing.image import ImageDataGenerator
 from tensorflow.python.client import device_lib
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
-import matplotlib.pyplot as plt 
 # TODO: clean up order of imports
 
 NUM_CLASSES = 67
@@ -73,22 +74,23 @@ class RoomClassifier(object):
 		model.summary()
 		return model
 
-	def finetune(self, train_data, val_data):
+	def finetune(self, train_data, val_data, num_epochs):
 		"""Finetune the model using the input data.
 
 		Args:
 			train_data: training data
 			val_data: validation data
+			num_epochs: number of epochs to train the data for
 
 		Returns:
 			Nothing, but the model is finetuned on the data.
 		"""
 		self._model.fit(
 		    train_data,
-		    steps_per_epoch=train_data.n // BATCH_SIZE,
-		    epochs=20,
+		    #steps_per_epoch=train_data.n // BATCH_SIZE,
+		    epochs=num_epochs,
 		    validation_data=val_data,
-		    validation_steps=val_data.n // BATCH_SIZE,
+		    #validation_steps=val_data.n // BATCH_SIZE,
 		    verbose=1,
 		    use_multiprocessing=True,
 		    workers=4,
@@ -107,10 +109,13 @@ class RoomClassifier(object):
 		recall = recall_score(y_test, y_pred) 
 		f1 = f1_score(y_test,y_pred) 
 
-		print("confusion: ", confusion)
+		fig, ax = plot_confusion_matrix(conf_mat=confusion,  figsize=(5, 5))
+		plt.savefig(str(self._model_id) + '_confusion_matrix.png')
+		plt.show()
 		print("precision: ", precision)
 		print("recall: ", recall)
 		print("f1: ", f1)
+		print(classification_report(y_test, y_pred))
 
 	def plot_model(self):
 		history = self._model.history
@@ -133,7 +138,7 @@ class RoomClassifier(object):
 		plt.savefig(str(self._model_id) + '_scene_loss.png')
 		plt.show()
 
-	def generate_model_number(self):
+	def generate_model_id(self):
 		"""Generate a unique number for the current model.
 
 		Returns:
@@ -141,6 +146,9 @@ class RoomClassifier(object):
 		"""
 		t = time.time()
 		return int(t)
+
+	def get_model_id(self):
+		return self._model_id
 
 	def format_model_path(self, model_id):
 		"""Generate the path to where the model is/can be saved.
@@ -154,11 +162,11 @@ class RoomClassifier(object):
 		model_path = './saved_models/scene_classifier_{}'.format(self._model_id) + '.h5'
 		return model_path
 
-	def export_model(self):
-		"""Saves the model and returns its path.
+	def get_model_path(self):
+		return self._model_path
 
-		Returns:
-			The path to the finetuned classifier model.
+	def export_model(self):
+		"""Saves the model to its corresponding path.
 		"""
 		self._model.save(self._model_path)
-		return self._model_path
+		print('Model successfully saved to ', self._model_path)
