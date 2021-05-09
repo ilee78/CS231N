@@ -14,7 +14,6 @@ from tensorflow.keras.applications import * #Efficient Net included here
 from tensorflow.keras import models
 from tensorflow.keras import layers
 from tensorflow.keras import optimizers
-from keras.preprocessing.image import ImageDataGenerator
 from tensorflow.python.client import device_lib
 # TODO: clean up order of imports
 
@@ -30,11 +29,11 @@ class RoomClassifier(object):
 		self.setup()
 		if model_id is None:
 			self._model = self.create_model(lr, dropout)
-			self._model_id = self.generate_model_number()
-			self._model_path = self.generate_model_path(self._model_id)
+			self._model_id = self.generate_model_id()
+			self._model_path = self.format_model_path(self._model_id)
 		else:
 			self._model_id = model_id
-			self._model_path = self.generate_model_path(self._model_id)
+			self._model_path = self.format_model_path(self._model_id)
 			self._model = keras.load_model(self._model_path)
 
 	def setup(self):
@@ -63,8 +62,8 @@ class RoomClassifier(object):
 		model.add(layers.BatchNormalization(name="batchnorm"))
 
 		# avoid overfitting
-		model.add(layers.Dropout(dropout_rate=dropout, name="dropout_out"))
-		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc_out"))
+		model.add(layers.Dropout(dropout, name="dropout"))
+		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc"))
 		conv_base.trainable = False
 		model.compile(
 		    loss="categorical_crossentropy",

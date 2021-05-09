@@ -1,14 +1,19 @@
 name: cs231n
 channels:
+  - tensorflow
   - defaults
 dependencies:
+  - python=3.7
   - numpy
   - scipy
   - tensorflow
   - keras
   - pandas
-  - split-folders
-  - absl
+  - absl-py
   - Pillow
   - matplotlib
   - pip
+  - tqdm
+  - mlxtend
+  - split-folders-0.4.3
+  - tf-nightly
