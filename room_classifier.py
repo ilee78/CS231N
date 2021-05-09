@@ -110,7 +110,7 @@ class RoomClassifier(object):
 		f1 = f1_score(y_test,y_pred) 
 
 		fig, ax = plot_confusion_matrix(conf_mat=confusion,  figsize=(5, 5))
-		plt.savefig(str(self._model_id) + '_confusion_matrix.png')
+		plt.savefig('./plots/' + str(self._model_id) + '_confusion_matrix.png')
 		plt.show()
 		print("precision: ", precision)
 		print("recall: ", recall)
@@ -126,7 +126,7 @@ class RoomClassifier(object):
 		plt.ylabel('Accuracy')
 		plt.xlabel('Epoch')
 		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig(str(self._model_id) + '_scene_acc.png')
+		plt.savefig('./plots/' + str(self._model_id) + '_scene_acc.png')
 		plt.show()
 
 		plt.plot(history.history['loss'])
@@ -135,7 +135,7 @@ class RoomClassifier(object):
 		plt.ylabel('Loss')
 		plt.xlabel('Epoch')
 		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig(str(self._model_id) + '_scene_loss.png')
+		plt.savefig('./plots/' + str(self._model_id) + '_scene_loss.png')
 		plt.show()
 
 	def generate_model_id(self):
