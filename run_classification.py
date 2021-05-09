@@ -31,9 +31,9 @@ def main():
 	classifier = room_classifier.RoomClassifier(FLAGS.model_id, 
 												FLAGS.learning_rate, 
 												FLAGS.dropout_rate)
-	train_data = data_generator.get_train_data()
-	val_data = data_generator.get_val_data()
-	X_test, y_test = data_generator.get_test_data()
+												
+	data_generator.clean_file_names()
+	train_data, val_data, X_test, y_test = data_generator.get_data()
 	classifier.finetune(train_data, val_data, FLAGS.num_epochs)
 	classifier.plot_model()
 	classifier.evaluate(X_test, y_test)
