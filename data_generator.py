@@ -3,7 +3,7 @@ import random
 import numpy as np
 import splitfolders     # for slick train/val/test set splitting
 import tensorflow as tf
-import keras
+from tensorflow import keras
 
 # Macros for directories
 INPUT_DIR = "Images"

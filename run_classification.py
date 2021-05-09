@@ -13,11 +13,11 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('data_path', './data',
 	'Path to the data directory.')
 
-flags.DEFINE_int('model_id', None,
+flags.DEFINE_integer('model_id', None,
 	'ID of the room classification model. If there is none (for example,'
 	' if the model has not been made yet), one will be created.')
 
-flags.DEFINE_int('num_epochs', 20,
+flags.DEFINE_integer('num_epochs', 20,
 	'Number of epochs to train the data for.')
 
 flags.DEFINE_float('learning_rate', 2e-3,
@@ -27,7 +27,7 @@ flags.DEFINE_float('dropout_rate', 0.2,
 	'Dropout rate for the classification model.')
 
 
-def main():
+def main(argv):
 	classifier = room_classifier.RoomClassifier(FLAGS.model_id, 
 												FLAGS.learning_rate, 
 												FLAGS.dropout_rate)
