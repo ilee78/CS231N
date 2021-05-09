@@ -130,3 +130,5 @@ dmypy.json
 
 # git stuff
 .DS_Store
+Images/
+output/
