@@ -17,7 +17,7 @@ flags.DEFINE_integer('model_id', None,
 	'ID of the room classification model. If there is none (for example,'
 	' if the model has not been made yet), one will be created.')
 
-flags.DEFINE_integer('num_epochs', 20,
+flags.DEFINE_integer('num_epochs', 10,
 	'Number of epochs to train the data for.')
 
 flags.DEFINE_float('learning_rate', 2e-3,
@@ -26,18 +26,26 @@ flags.DEFINE_float('learning_rate', 2e-3,
 flags.DEFINE_float('dropout_rate', 0.2,
 	'Dropout rate for the classification model.')
 
+flags.DEFINE_boolean('clean_images', False,
+	'Whether or not to clean the input images.')
+
+flags.DEFINE_boolean('finetune', True,
+	'Whether or not to finetune the classification model.')
+
 
 def main(argv):
 	classifier = room_classifier.RoomClassifier(FLAGS.model_id, 
 												FLAGS.learning_rate, 
 												FLAGS.dropout_rate)
-												
-	data_generator.clean_file_names()
+	print(classifier.get_model_id())
+	if FLAGS.clean_images:
+		data_generator.clean_file_names()
 	train_data, val_data, X_test, y_test = data_generator.get_data()
-	classifier.finetune(train_data, val_data, FLAGS.num_epochs)
-	classifier.plot_model()
+	if FLAGS.finetune:
+		classifier.finetune(train_data, val_data, FLAGS.num_epochs)
+		classifier.plot_model()
+		classifier.export_model()
 	classifier.evaluate(X_test, y_test)
-	classifier.export_model()
 
 
 if __name__ == '__main__':

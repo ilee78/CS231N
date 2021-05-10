@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 from mlxtend.plotting import plot_confusion_matrix
+import numpy as np
 import pandas as pd
 import shutil
 from sklearn import model_selection
@@ -17,7 +18,7 @@ from tensorflow.keras import optimizers
 from tensorflow.python.client import device_lib
 # TODO: clean up order of imports
 
-NUM_CLASSES = 67
+NUM_CLASSES = 5
 IMG_SIZE = 224
 BATCH_SIZE = 32
 
@@ -34,7 +35,7 @@ class RoomClassifier(object):
 		else:
 			self._model_id = model_id
 			self._model_path = self.format_model_path(self._model_id)
-			self._model = keras.load_model(self._model_path)
+			self._model = models.load_model(self._model_path)
 
 	def setup(self):
 		"""Test whether system and GPU are configured correctly
@@ -51,7 +52,7 @@ class RoomClassifier(object):
 			New keras model based on EfficientNet.
 		"""
 		# input_shape is (height, width, number of channels) for images
-		input_shape = (IMG_SIZE, IMG_SIZE, 3) # 3?
+		input_shape = (IMG_SIZE, IMG_SIZE, 3)
 		conv_base = EfficientNetB0(weights="imagenet", include_top=False, 
 			input_shape=input_shape, drop_connect_rate=dropout)
 		model = models.Sequential()
@@ -66,7 +67,7 @@ class RoomClassifier(object):
 		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc"))
 		conv_base.trainable = False
 		model.compile(
-		    loss="categorical_crossentropy",
+		    loss="sparse_categorical_crossentropy",
 		    optimizer=optimizers.Adam(lr),
 		    metrics=["acc"],
 		)
@@ -99,14 +100,15 @@ class RoomClassifier(object):
 		"""Evaluate the model on test data.
 		"""
 		y_pred = self._model.predict(X_test)
-		score = self._model.evaluate(X_test, y_test, verbose=1)
+		results = self._model.evaluate(X_test, y_test, verbose=1)
 		for name, value in zip(self._model.metrics_names, results):
 			print(name, ": ", str(value))
 
+		y_pred = np.argmax(y_pred, axis=1)
 		confusion = confusion_matrix(y_test, y_pred) 
-		precision = precision_score(y_test, y_pred) 
-		recall = recall_score(y_test, y_pred) 
-		f1 = f1_score(y_test,y_pred) 
+		precision = precision_score(y_test, y_pred, average='micro') 
+		recall = recall_score(y_test, y_pred, average='micro') 
+		f1 = f1_score(y_test,y_pred, average='micro') 
 
 		fig, ax = plot_confusion_matrix(conf_mat=confusion,  figsize=(5, 5))
 		plt.savefig('./plots/' + str(self._model_id) + '_confusion_matrix.png')
@@ -119,13 +121,13 @@ class RoomClassifier(object):
 	def plot_model(self):
 		history = self._model.history
 
-		plt.plot(history.history['accuracy'])
-		plt.plot(history.history['val_accuracy'])
+		plt.plot(history.history['acc'])
+		plt.plot(history.history['val_acc'])
 		plt.title('Model accuracy')
 		plt.ylabel('Accuracy')
 		plt.xlabel('Epoch')
 		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig('./plots/' + str(self._model_id) + '_scene_acc.png')
+		plt.savefig('./plots/' + str(self._model_id) + '_acc.png')
 		plt.show()
 
 		plt.plot(history.history['loss'])
@@ -134,7 +136,7 @@ class RoomClassifier(object):
 		plt.ylabel('Loss')
 		plt.xlabel('Epoch')
 		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig('./plots/' + str(self._model_id) + '_scene_loss.png')
+		plt.savefig('./plots/' + str(self._model_id) + '_loss.png')
 		plt.show()
 
 	def generate_model_id(self):
