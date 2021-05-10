@@ -65,3 +65,9 @@ def get_data():
     y_test = np.squeeze(np.array(y_test), axis=0)
 
     return train, val, X_test, y_test
+
+# Returns a Tuple of Lists - (list of strings of class labels, list of ints corresponding to first list)
+def get_class_labels():
+    class_labels = input_files
+    class_ints = [i for i in range(len(class_labels))]
+    return class_labels, class_ints
