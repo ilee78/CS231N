@@ -31,21 +31,21 @@ flags.DEFINE_boolean('finetune', True,
 
 
 def main(argv):
-        os.environ['CUDA_VISIBLE_DEVICES'] = 0
-        with tf.device(tf.DeviceSpec(device_type='GPU', device_index=0)):
-	    classifier = room_classifier.RoomClassifier(FLAGS.model_id, 
-												FLAGS.learning_rate, 
-												FLAGS.dropout_rate)
-print('Model ID: ', classifier.get_model_id())
-	     if FLAGS.clean_images:
-	            data_generator.clean_file_names()
-	    train_data, val_data, X_test, y_test = data_generator.get_data()
-            if FLAGS.finetune:
-		    classifier.finetune(train_data, val_data, FLAGS.num_epochs)
-	            classifier.plot_model()
-	            classifier.export_model()
-            class_labels, class_ints = data_generator.get_class_labels()
-            classifier.evaluate(X_test, y_test, class_ints, class_labels)
+	os.environ['CUDA_VISIBLE_DEVICES'] = 0
+	with tf.device(tf.DeviceSpec(device_type='GPU', device_index=0)):
+		classifier = room_classifier.RoomClassifier(FLAGS.model_id, 
+											FLAGS.learning_rate, 
+											FLAGS.dropout_rate)
+		print('Model ID: ', classifier.get_model_id())
+		if FLAGS.clean_images:
+			data_generator.clean_file_names()
+		train_data, val_data, X_test, y_test = data_generator.get_data()
+		if FLAGS.finetune:
+			classifier.finetune(train_data, val_data, FLAGS.num_epochs)
+			classifier.plot_model()
+			classifier.export_model()
+		class_labels, class_ints = data_generator.get_class_labels()
+		classifier.evaluate(X_test, y_test, class_ints, class_labels)
 
 
 if __name__ == '__main__':
