@@ -18,7 +18,7 @@ from tensorflow.keras import optimizers
 from tensorflow.python.client import device_lib
 # TODO: clean up order of imports
 
-NUM_CLASSES = 5
+NUM_CLASSES = 9
 IMG_SIZE = 224
 BATCH_SIZE = 32
 
@@ -96,6 +96,27 @@ class RoomClassifier(object):
 		    workers=4,
 		)
 
+	def plot_model(self):
+		history = self._model.history
+
+		plt.plot(history.history['acc'])
+		plt.plot(history.history['val_acc'])
+		plt.title('Model accuracy')
+		plt.ylabel('Accuracy')
+		plt.xlabel('Epoch')
+		plt.legend(['Train', 'Validation'], loc='upper left')
+		plt.savefig('./plots/' + str(self._model_id) + '_acc.png')
+		plt.show()
+
+		plt.plot(history.history['loss'])
+		plt.plot(history.history['val_loss'])
+		plt.title('Model loss')
+		plt.ylabel('Loss')
+		plt.xlabel('Epoch')
+		plt.legend(['Train', 'Validation'], loc='upper left')
+		plt.savefig('./plots/' + str(self._model_id) + '_loss.png')
+		plt.show()
+
 	def evaluate(self, X_test, y_test, class_ints, class_labels):
 		"""Evaluate the model on test data.
 		"""
@@ -117,27 +138,6 @@ class RoomClassifier(object):
 		print("recall: ", recall)
 		print("f1: ", f1)
 		print(classification_report(y_test, y_pred, labels=class_ints, target_names=class_labels))
-
-	def plot_model(self):
-		history = self._model.history
-
-		plt.plot(history.history['acc'])
-		plt.plot(history.history['val_acc'])
-		plt.title('Model accuracy')
-		plt.ylabel('Accuracy')
-		plt.xlabel('Epoch')
-		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig('./plots/' + str(self._model_id) + '_acc.png')
-		plt.show()
-
-		plt.plot(history.history['loss'])
-		plt.plot(history.history['val_loss'])
-		plt.title('Model loss')
-		plt.ylabel('Loss')
-		plt.xlabel('Epoch')
-		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig('./plots/' + str(self._model_id) + '_loss.png')
-		plt.show()
 
 	def generate_model_id(self):
 		"""Generate a unique number for the current model.

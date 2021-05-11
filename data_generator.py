@@ -57,12 +57,13 @@ def get_data():
         class_names=input_files,
         image_size=(224, 224),
         shuffle=True,
+        batch_size=1,
     )
     
     # Further split test set into x and y
     X_test, y_test = tuple(zip(*test))
-    X_test = np.squeeze(np.array(X_test), axis=0)
-    y_test = np.squeeze(np.array(y_test), axis=0)
+    X_test = np.squeeze(np.array(X_test))
+    y_test = np.squeeze(np.array(y_test))
 
     return train, val, X_test, y_test
 
