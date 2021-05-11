@@ -26,7 +26,7 @@ class RoomClassifier(object):
 	"""Classify rooms based on input images.
 	"""
 
-	def __init__(self, model_id=None, lr=2e-3, dropout=0.2):
+	def __init__(self, model_id=None, lr=3e-4, dropout=0.2):
 		self.setup()
 		if model_id is None:
 			self._model = self.create_model(lr, dropout)
@@ -96,7 +96,7 @@ class RoomClassifier(object):
 		    workers=4,
 		)
 
-	def evaluate(self, X_test, y_test):
+	def evaluate(self, X_test, y_test, class_ints, class_labels):
 		"""Evaluate the model on test data.
 		"""
 		y_pred = self._model.predict(X_test)
@@ -116,7 +116,7 @@ class RoomClassifier(object):
 		print("precision: ", precision)
 		print("recall: ", recall)
 		print("f1: ", f1)
-		print(classification_report(y_test, y_pred))
+		print(classification_report(y_test, y_pred, labels=class_ints, target_names=class_labels))
 
 	def plot_model(self):
 		history = self._model.history
