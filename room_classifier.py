@@ -18,7 +18,7 @@ from tensorflow.keras import optimizers
 from tensorflow.python.client import device_lib
 # TODO: clean up order of imports
 
-NUM_CLASSES = 9
+NUM_CLASSES = 67
 IMG_SIZE = 224
 BATCH_SIZE = 32
 

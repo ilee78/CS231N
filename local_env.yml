@@ -15,5 +15,3 @@ dependencies:
   - pip
   - tqdm
   - mlxtend
-  - split-folders-0.4.3
-  - tf-nightly
