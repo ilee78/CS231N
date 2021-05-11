@@ -41,6 +41,8 @@ class RoomClassifier(object):
 		"""Test whether system and GPU are configured correctly
 		"""
 		print(device_lib.list_local_devices())
+		print('Num GPUs Available: ', len(tf.config.list_physical_devices('GPU')))
+
 
 	def create_model(self, lr, dropout):
 		"""Load pretrained conv base model and set up for finetuning.
