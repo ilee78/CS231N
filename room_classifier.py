@@ -18,7 +18,7 @@ from tensorflow.keras import optimizers
 from tensorflow.python.client import device_lib
 # TODO: clean up order of imports
 
-NUM_CLASSES = 67
+NUM_CLASSES = 66
 IMG_SIZE = 224
 BATCH_SIZE = 32
 
@@ -60,6 +60,9 @@ class RoomClassifier(object):
 		model = models.Sequential()
 		model.add(conv_base)
 
+		# Rescale inputs
+		model.add(layers.experimental.preprocessing.Rescaling(1./255))
+
 		# rebuild top
 		model.add(layers.GlobalMaxPooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
@@ -87,6 +90,16 @@ class RoomClassifier(object):
 		Returns:
 			Nothing, but the model is finetuned on the data.
 		"""
+		# Save the model every epoch
+		model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+		    filepath=self._model_path,
+			save_weights_only=False,
+			monitor='val_acc',
+			mode='max',
+			save_best_only=True,
+			save_freq="epoch",
+		)
+
 		self._model.fit(
 		    train_data,
 		    #steps_per_epoch=train_data.n // BATCH_SIZE,
@@ -96,6 +109,7 @@ class RoomClassifier(object):
 		    verbose=1,
 		    use_multiprocessing=True,
 		    workers=4,
+		    callbacks=[model_checkpoint_callback],
 		)
 
 	def plot_model(self):

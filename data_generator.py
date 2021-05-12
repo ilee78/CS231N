@@ -30,7 +30,7 @@ def get_data():
     if os.path.isdir(OUTPUT_DIR):
         print("Output path already exists. Skipping data splitting.")
     else:
-        splitfolders.ratio(INPUT_DIR, output=OUTPUT_DIR, seed=1234, ratio=(0.75, 0.15, 0.1), group_prefix=None)
+        splitfolders.ratio(INPUT_DIR, output=OUTPUT_DIR, seed=1234, ratio=(0.7, 0.15, 0.15), group_prefix=None)
     
     train = tf.keras.preprocessing.image_dataset_from_directory(
         TRAIN_DIR,
@@ -59,6 +59,11 @@ def get_data():
         shuffle=True,
         batch_size=1,
     )
+    
+    AUTOTUNE = tf.data.AUTOTUNE
+    train = train.prefetch(buffer_size=AUTOTUNE).cache()
+    val = val.prefetch(buffer_size=AUTOTUNE).cache()
+    test = test.prefetch(buffer_size=AUTOTUNE).cache()
     
     # Further split test set into x and y
     X_test, y_test = tuple(zip(*test))
