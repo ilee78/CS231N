@@ -17,10 +17,14 @@ flags.DEFINE_integer('model_id', None,
 flags.DEFINE_integer('num_epochs', 10,
 	'Number of epochs to train the data for.')
 
+flags.DEFINE_integer('unfreeze', 0,
+	'How many layers of the model to unfreeze, to further finetune. '
+	'This operation only works if finetune is False.')
+
 flags.DEFINE_float('learning_rate', 3e-4,
 	'Learning rate for the classification model.')
 
-flags.DEFINE_float('dropout_rate', 0.2,
+flags.DEFINE_float('dropout_rate', 0.5,
 	'Dropout rate for the classification model.')
 
 flags.DEFINE_boolean('clean_images', False,
@@ -42,6 +46,11 @@ def main(argv):
 	train_data, val_data, X_test, y_test = data_generator.get_data()
 	if FLAGS.finetune:
 		classifier.finetune(train_data, val_data, FLAGS.num_epochs)
+		classifier.plot_model()
+		classifier.export_model()
+	elif FLAGS.unfreeze > 0:
+		classifier.unfreeze(train_data, val_data, FLAGS.unfreeze,
+			FLAGS.num_epochs, FLAGS.learning_rate)
 		classifier.plot_model()
 		classifier.export_model()
 	class_labels, class_ints = data_generator.get_class_labels()

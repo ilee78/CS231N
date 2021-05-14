@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from mlxtend.plotting import plot_confusion_matrix
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import shutil
 from sklearn import model_selection
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, classification_report
@@ -28,6 +29,7 @@ class RoomClassifier(object):
 
 	def __init__(self, model_id=None, lr=3e-4, dropout=0.2):
 		self.setup()
+		self._unfrozen = False
 		if model_id is None:
 			self._model = self.create_model(lr, dropout)
 			self._model_id = self.generate_model_id()
@@ -35,7 +37,9 @@ class RoomClassifier(object):
 		else:
 			self._model_id = model_id
 			self._model_path = self.format_model_path(self._model_id)
+			# Always loads models with EfficientNet frozen
 			self._model = models.load_model(self._model_path)
+		self._plot_prefix = self.generate_plot_prefix()
 
 	def setup(self):
 		"""Test whether system and GPU are configured correctly
@@ -55,22 +59,28 @@ class RoomClassifier(object):
 		"""
 		# input_shape is (height, width, number of channels) for images
 		input_shape = (IMG_SIZE, IMG_SIZE, 3)
-		conv_base = EfficientNetB0(weights="imagenet", include_top=False, 
-			input_shape=input_shape, drop_connect_rate=dropout)
+		conv_base = EfficientNetB2(weights="imagenet", include_top=False, 
+			input_shape=input_shape) # , drop_connect_rate=dropout
+		conv_base.trainable = False
 		model = models.Sequential()
 		model.add(conv_base)
 
 		# Rescale inputs
-		model.add(layers.experimental.preprocessing.Rescaling(1./255))
+		model.add(layers.experimental.preprocessing.Rescaling(1./IMG_SIZE, name="rescaling"))
 
-		# rebuild top
-		model.add(layers.GlobalMaxPooling2D(name="gap"))
+		# rebuild top and add some dense layers
+		# model.add(layers.Conv2D(32, (3,3), activation='relu'))
+		# model.add(layers.BatchNormalization())
+		model.add(layers.GlobalAveragePooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
+		# model.add(layers.Dropout(0.7, name="initial_dropout"))
+		# model.add(layers.Dense(512, activation='relu', name="fc_512"))
+		# model.add(layers.BatchNormalization())
+		# model.add(layers.Activation('relu'))
 
 		# avoid overfitting
 		model.add(layers.Dropout(dropout, name="dropout"))
-		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc"))
-		conv_base.trainable = False
+		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc_output"))
 		model.compile(
 		    loss="sparse_categorical_crossentropy",
 		    optimizer=optimizers.Adam(lr),
@@ -100,17 +110,57 @@ class RoomClassifier(object):
 			save_freq="epoch",
 		)
 
-		self._model.fit(
-		    train_data,
-		    #steps_per_epoch=train_data.n // BATCH_SIZE,
-		    epochs=num_epochs,
-		    validation_data=val_data,
-		    #validation_steps=val_data.n // BATCH_SIZE,
-		    verbose=1,
-		    use_multiprocessing=True,
-		    workers=4,
-		    callbacks=[model_checkpoint_callback],
+		#reducing learning rate on plateau
+		rlrop = keras.callbacks.ReduceLROnPlateau(
+			monitor='val_loss', 
+			mode='min', 
+			patience= 5, 
+			factor= 0.5, 
+			min_lr= 1e-6, 
+			verbose=1
 		)
+
+		self._model.fit(
+			train_data,
+			# steps_per_epoch=train_data.n // BATCH_SIZE,
+			epochs=num_epochs,
+			validation_data=val_data,
+			# validation_steps=val_data.n // BATCH_SIZE,
+			verbose=1,
+			use_multiprocessing=True,
+			workers=4,
+			callbacks=[model_checkpoint_callback, rlrop],
+		)
+
+	def unfreeze(self, train_data, val_data, num_unfreeze, num_epochs, lr):
+		"""Unfreeze the top num_layers_unfreeze layers while leaving BatchNorm layers frozen,
+		then finetune the model again. Learning rate should be less than the initial
+		finetuning learning rate.
+
+		Args:
+			train_data: training data
+			val_data: validation data
+			num_epochs: number of epochs to train the data for
+
+		Returns:
+			Nothing, but the model is finetuned on the data.
+		"""
+		self._unfrozen_layers = num_unfreeze
+		self._model_path = self.format_model_path(self._model_id)
+		self._plot_prefix = self.generate_plot_prefix()
+
+		for layer in self._model.layers[-num_unfreeze:]:
+			if not isinstance(layer, layers.BatchNormalization):
+				layer.trainable = True
+			else:
+				layer.trainable = False
+		self._model.compile(
+			optimizer=optimizers.Adam(lr),
+			loss="sparse_categorical_crossentropy",
+			metrics=["acc"]
+		)
+		self._model.summary()
+		self._model.fit(train_data, epochs=num_epochs, validation_data=val_data, verbose=1)
 
 	def plot_model(self):
 		history = self._model.history
@@ -121,7 +171,7 @@ class RoomClassifier(object):
 		plt.ylabel('Accuracy')
 		plt.xlabel('Epoch')
 		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig('./plots/' + str(self._model_id) + '_acc.png')
+		plt.savefig(self._plot_prefix + '_acc.png')
 		plt.show()
 
 		plt.plot(history.history['loss'])
@@ -130,7 +180,7 @@ class RoomClassifier(object):
 		plt.ylabel('Loss')
 		plt.xlabel('Epoch')
 		plt.legend(['Train', 'Validation'], loc='upper left')
-		plt.savefig('./plots/' + str(self._model_id) + '_loss.png')
+		plt.savefig(self._plot_prefix + '_loss.png')
 		plt.show()
 
 	def evaluate(self, X_test, y_test, class_ints, class_labels):
@@ -142,13 +192,23 @@ class RoomClassifier(object):
 			print(name, ": ", str(value))
 
 		y_pred = np.argmax(y_pred, axis=1)
-		confusion = confusion_matrix(y_test, y_pred) 
+		confusion = confusion_matrix(y_test, y_pred, normalize='true') 
 		precision = precision_score(y_test, y_pred, average='micro') 
 		recall = recall_score(y_test, y_pred, average='micro') 
 		f1 = f1_score(y_test,y_pred, average='micro') 
 
-		fig, ax = plot_confusion_matrix(conf_mat=confusion,  figsize=(5, 5))
-		plt.savefig('./plots/' + str(self._model_id) + '_confusion_matrix.png')
+		# fig, ax = plot_confusion_matrix(conf_mat=confusion, 
+		# 								figsize=(30, 30),
+		# 								show_absolute=False,
+		# 								show_normed=True,
+		# 								colorbar=True)
+		fig, ax = plt.subplots(figsize=(16, 13))
+		ax = sns.heatmap(confusion,
+						vmin=0, vmax=1,
+						annot=False, cmap='Blues', cbar=True,
+						xticklabels=class_labels, yticklabels=class_labels)
+		plt.tight_layout()
+		plt.savefig(self._plot_prefix + '_confusion_matrix.png')
 		plt.show()
 		print("precision: ", precision)
 		print("recall: ", recall)
@@ -165,7 +225,18 @@ class RoomClassifier(object):
 		return int(t)
 
 	def get_model_id(self):
+		"""Returns id of the model
+		"""
 		return self._model_id
+
+	def generate_plot_prefix(self):
+		"""Generates prefix to path of plots. Dependent on model id and whether
+		or not the model has been unfrozen.
+		"""
+		prefix = './plots/' + str(self._model_id)
+		if self._unfrozen:
+			prefix += '_' + self._num_unfrozen + 'unfrozen'
+		return prefix
 
 	def format_model_path(self, model_id):
 		"""Generate the path to where the model is/can be saved.
@@ -176,7 +247,10 @@ class RoomClassifier(object):
 		Returns:
 			A string denoting the path where the model can be stored.
 		"""
-		model_path = './saved_models/scene_classifier_{}'.format(self._model_id) + '.h5'
+		model_path = './saved_models/scene_classifier_{}'.format(self._model_id)
+		if self._unfrozen:
+			model_path += '_' + self._num_unfrozen
+		model_path += '.h5'
 		return model_path
 
 	def get_model_path(self):

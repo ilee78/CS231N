@@ -61,9 +61,9 @@ def get_data():
     )
     
     AUTOTUNE = tf.data.AUTOTUNE
-    train = train.prefetch(buffer_size=AUTOTUNE).cache()
-    val = val.prefetch(buffer_size=AUTOTUNE).cache()
-    test = test.prefetch(buffer_size=AUTOTUNE).cache()
+    train = train.cache().prefetch(buffer_size=AUTOTUNE)
+    val = val.cache().prefetch(buffer_size=AUTOTUNE)
+    test = test.cache().prefetch(buffer_size=AUTOTUNE)
     
     # Further split test set into x and y
     X_test, y_test = tuple(zip(*test))

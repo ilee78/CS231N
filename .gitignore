@@ -132,3 +132,4 @@ dmypy.json
 .DS_Store
 Images*/
 output*/
+worse_saved_models/
