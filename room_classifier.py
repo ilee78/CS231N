@@ -2,7 +2,7 @@ import os
 import matplotlib.pyplot as plt
 from mlxtend.plotting import plot_confusion_matrix
 import numpy as np
-import pandas as pd
+from numpy.random import seed
 import seaborn as sns
 import shutil
 from sklearn import model_selection
@@ -13,9 +13,7 @@ from tqdm import tqdm
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.applications import * #Efficient Net included here
-from tensorflow.keras import models
-from tensorflow.keras import layers
-from tensorflow.keras import optimizers
+from tensorflow.keras import models, layers, optimizers
 from tensorflow.python.client import device_lib
 # TODO: clean up order of imports
 
@@ -28,6 +26,8 @@ class RoomClassifier(object):
 	"""
 
 	def __init__(self, model_id=None, lr=3e-4, dropout=0.2):
+		seed(1234) # keras seed fixing
+		tf.random.set_seed(1234)# tensorflow seed fixing
 		self.setup()
 		self._unfrozen = False
 		if model_id is None:
@@ -59,7 +59,7 @@ class RoomClassifier(object):
 		"""
 		# input_shape is (height, width, number of channels) for images
 		input_shape = (IMG_SIZE, IMG_SIZE, 3)
-		conv_base = EfficientNetB2(weights="imagenet", include_top=False, 
+		conv_base = EfficientNetB0(weights="imagenet", include_top=False, 
 			input_shape=input_shape) # , drop_connect_rate=dropout
 		conv_base.trainable = False
 		model = models.Sequential()
@@ -74,9 +74,9 @@ class RoomClassifier(object):
 		model.add(layers.GlobalAveragePooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
 		# model.add(layers.Dropout(0.7, name="initial_dropout"))
-		# model.add(layers.Dense(512, activation='relu', name="fc_512"))
-		# model.add(layers.BatchNormalization())
-		# model.add(layers.Activation('relu'))
+		model.add(layers.Dense(512, name="fc_512"))
+		# model.add(layers.BatchNormalization(name="batchnorm_2"))
+		model.add(layers.Activation('relu'))
 
 		# avoid overfitting
 		model.add(layers.Dropout(dropout, name="dropout"))
@@ -84,7 +84,7 @@ class RoomClassifier(object):
 		model.compile(
 		    loss="sparse_categorical_crossentropy",
 		    optimizer=optimizers.Adam(lr),
-		    metrics=["acc"],
+		    metrics=['sparse_categorical_accuracy'], # tf.keras.metrics.SparseCategoricalAccuracy(dtype=tf.float32)
 		)
 		model.summary()
 		return model
@@ -104,7 +104,7 @@ class RoomClassifier(object):
 		model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
 		    filepath=self._model_path,
 			save_weights_only=False,
-			monitor='val_acc',
+			monitor='val_sparse_categorical_accuracy',
 			mode='max',
 			save_best_only=True,
 			save_freq="epoch",
@@ -157,7 +157,7 @@ class RoomClassifier(object):
 		self._model.compile(
 			optimizer=optimizers.Adam(lr),
 			loss="sparse_categorical_crossentropy",
-			metrics=["acc"]
+			metrics=["sparse_categorical_accuracy"]
 		)
 		self._model.summary()
 		self._model.fit(train_data, epochs=num_epochs, validation_data=val_data, verbose=1)
@@ -165,8 +165,8 @@ class RoomClassifier(object):
 	def plot_model(self):
 		history = self._model.history
 
-		plt.plot(history.history['acc'])
-		plt.plot(history.history['val_acc'])
+		plt.plot(history.history['sparse_categorical_accuracy'])
+		plt.plot(history.history['val_sparse_categorical_accuracy'])
 		plt.title('Model accuracy')
 		plt.ylabel('Accuracy')
 		plt.xlabel('Epoch')

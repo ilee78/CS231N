@@ -21,7 +21,7 @@ flags.DEFINE_integer('unfreeze', 0,
 	'How many layers of the model to unfreeze, to further finetune. '
 	'This operation only works if finetune is False.')
 
-flags.DEFINE_float('learning_rate', 3e-4,
+flags.DEFINE_float('learning_rate', 1e-3,
 	'Learning rate for the classification model.')
 
 flags.DEFINE_float('dropout_rate', 0.5,
