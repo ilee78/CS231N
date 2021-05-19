@@ -14,14 +14,14 @@ flags.DEFINE_integer('model_id', None,
 	'ID of the room classification model. If there is none (for example,'
 	' if the model has not been made yet), one will be created.')
 
-flags.DEFINE_integer('num_epochs', 10,
+flags.DEFINE_integer('num_epochs', 20,
 	'Number of epochs to train the data for.')
 
 flags.DEFINE_integer('unfreeze', 0,
 	'How many layers of the model to unfreeze, to further finetune. '
 	'This operation only works if finetune is False.')
 
-flags.DEFINE_float('learning_rate', 3e-4,
+flags.DEFINE_float('learning_rate', 1e-3,
 	'Learning rate for the classification model.')
 
 flags.DEFINE_float('dropout_rate', 0.5,
