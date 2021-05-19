@@ -14,7 +14,7 @@ flags.DEFINE_integer('model_id', None,
 	'ID of the room classification model. If there is none (for example,'
 	' if the model has not been made yet), one will be created.')
 
-flags.DEFINE_integer('num_epochs', 10,
+flags.DEFINE_integer('num_epochs', 20,
 	'Number of epochs to train the data for.')
 
 flags.DEFINE_integer('unfreeze', 0,

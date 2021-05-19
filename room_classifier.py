@@ -69,14 +69,16 @@ class RoomClassifier(object):
 		model.add(layers.experimental.preprocessing.Rescaling(1./IMG_SIZE, name="rescaling"))
 
 		# rebuild top and add some dense layers
-		# model.add(layers.Conv2D(32, (3,3), activation='relu'))
+		model.add(layers.Conv2D(1024, (3,3), activation='relu'))
 		# model.add(layers.BatchNormalization())
 		model.add(layers.GlobalAveragePooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
-		# model.add(layers.Dropout(0.7, name="initial_dropout"))
-		model.add(layers.Dense(512, name="fc_512"))
+		model.add(layers.Dropout(0.7, name="initial_dropout"))
+		# model.add(layers.Dense(256, activation='relu', name="fc_128"))
+		# model.add(layers.Dropout(0.5, name="second_dropout"))
+		model.add(layers.Dense(512, activation='relu', name="fc_512"))
 		# model.add(layers.BatchNormalization(name="batchnorm_2"))
-		model.add(layers.Activation('relu'))
+		# model.add(layers.Activation('relu'))
 
 		# avoid overfitting
 		model.add(layers.Dropout(dropout, name="dropout"))
@@ -149,7 +151,7 @@ class RoomClassifier(object):
 		self._model_path = self.format_model_path(self._model_id)
 		self._plot_prefix = self.generate_plot_prefix()
 
-		for layer in self._model.layers[-num_unfreeze:]:
+		for layer in self._model.efficientnetb0.layers[-num_unfreeze:]:
 			if not isinstance(layer, layers.BatchNormalization):
 				layer.trainable = True
 			else:
