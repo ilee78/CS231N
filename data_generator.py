@@ -5,6 +5,7 @@ import splitfolders     # for slick train/val/test set splitting
 import tensorflow as tf
 from tensorflow import keras
 from PIL import Image
+import pickle
 
 # Macros for directories
 INPUT_DIR = "Images"
@@ -12,6 +13,7 @@ OUTPUT_DIR = "output"
 TRAIN_DIR = os.path.join(OUTPUT_DIR, "train")
 VAL_DIR = os.path.join(OUTPUT_DIR, "val")
 TEST_DIR = os.path.join(OUTPUT_DIR, "test")
+SEED = 1234
 
 input_files = sorted(os.listdir(INPUT_DIR))
 
@@ -30,7 +32,7 @@ def get_data():
     if os.path.isdir(OUTPUT_DIR):
         print("Output path already exists. Skipping data splitting.")
     else:
-        splitfolders.ratio(INPUT_DIR, output=OUTPUT_DIR, seed=1234, ratio=(0.7, 0.15, 0.15), group_prefix=None)
+        splitfolders.ratio(INPUT_DIR, output=OUTPUT_DIR, seed=SEED, ratio=(0.7, 0.15, 0.15), group_prefix=None)
     
     train = tf.keras.preprocessing.image_dataset_from_directory(
         TRAIN_DIR,
@@ -39,6 +41,8 @@ def get_data():
         class_names=input_files,
         image_size=(224, 224),
         shuffle=True,
+        seed=SEED,
+        batch_size=16,
     )
 
     val = tf.keras.preprocessing.image_dataset_from_directory(
@@ -48,6 +52,8 @@ def get_data():
         class_names=input_files,
         image_size=(224, 224),
         shuffle=True,
+        seed=SEED,
+        batch_size=16,
     )    
 
     test = tf.keras.preprocessing.image_dataset_from_directory(
@@ -58,6 +64,7 @@ def get_data():
         image_size=(224, 224),
         shuffle=True,
         batch_size=1,
+        seed=SEED,
     )
     
     AUTOTUNE = tf.data.AUTOTUNE
@@ -71,6 +78,7 @@ def get_data():
     y_test = np.squeeze(np.array(y_test))
 
     return train, val, X_test, y_test
+
 
 # Returns a Tuple of Lists - (list of strings of class labels, list of ints corresponding to first list)
 def get_class_labels():

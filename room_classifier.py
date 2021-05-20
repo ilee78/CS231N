@@ -20,14 +20,16 @@ from tensorflow.python.client import device_lib
 NUM_CLASSES = 66
 IMG_SIZE = 224
 BATCH_SIZE = 32
+SEED = 1234
+
+seed(SEED) # keras seed fixing
+tf.random.set_seed(SEED)# tensorflow seed fixing
 
 class RoomClassifier(object):
 	"""Classify rooms based on input images.
 	"""
 
 	def __init__(self, model_id=None, lr=3e-4, dropout=0.2):
-		seed(1234) # keras seed fixing
-		tf.random.set_seed(1234)# tensorflow seed fixing
 		self.setup()
 		self._unfrozen = False
 		if model_id is None:
@@ -39,6 +41,12 @@ class RoomClassifier(object):
 			self._model_path = self.format_model_path(self._model_id)
 			# Always loads models with EfficientNet frozen
 			self._model = models.load_model(self._model_path)
+			self._model.load_weights(self._model_path)
+			# self._model.compile(
+			# 	loss="sparse_categorical_crossentropy",
+			#     optimizer=optimizers.Adam(lr),
+			#     metrics=['sparse_categorical_accuracy'])
+			self._model.summary()
 		self._plot_prefix = self.generate_plot_prefix()
 
 	def setup(self):
@@ -69,19 +77,22 @@ class RoomClassifier(object):
 		model.add(layers.experimental.preprocessing.Rescaling(1./IMG_SIZE, name="rescaling"))
 
 		# rebuild top and add some dense layers
-		model.add(layers.Conv2D(1024, (3,3), activation='relu'))
-		# model.add(layers.BatchNormalization())
+		# model.add(layers.Conv2D(64, (3,3), activation='relu'))
+		#model.add(layers.BatchNormalization())
+		# model.add(layers.MaxPool2D((2, 2), 2, padding='same', name="max_pool"))
+		#model.add(layers.Conv2D(128, (3,3), activation='relu'))
 		model.add(layers.GlobalAveragePooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
-		model.add(layers.Dropout(0.7, name="initial_dropout"))
-		# model.add(layers.Dense(256, activation='relu', name="fc_128"))
+		model.add(layers.Dropout(0.5, name="initial_dropout"))
+		# model.add(layers.Dense(64, activation='relu', name="fc_64"))
 		# model.add(layers.Dropout(0.5, name="second_dropout"))
 		model.add(layers.Dense(512, activation='relu', name="fc_512"))
+		model.add(layers.Dense(128, activation='relu', name="fc_128"))
 		# model.add(layers.BatchNormalization(name="batchnorm_2"))
 		# model.add(layers.Activation('relu'))
 
 		# avoid overfitting
-		model.add(layers.Dropout(dropout, name="dropout"))
+		model.add(layers.Dropout(dropout, name="dropout")) # 0.3
 		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc_output"))
 		model.compile(
 		    loss="sparse_categorical_crossentropy",
@@ -110,6 +121,7 @@ class RoomClassifier(object):
 			mode='max',
 			save_best_only=True,
 			save_freq="epoch",
+			verbose=0
 		)
 
 		#reducing learning rate on plateau
@@ -199,11 +211,6 @@ class RoomClassifier(object):
 		recall = recall_score(y_test, y_pred, average='micro') 
 		f1 = f1_score(y_test,y_pred, average='micro') 
 
-		# fig, ax = plot_confusion_matrix(conf_mat=confusion, 
-		# 								figsize=(30, 30),
-		# 								show_absolute=False,
-		# 								show_normed=True,
-		# 								colorbar=True)
 		fig, ax = plt.subplots(figsize=(16, 13))
 		ax = sns.heatmap(confusion,
 						vmin=0, vmax=1,
