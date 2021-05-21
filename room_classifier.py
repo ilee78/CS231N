@@ -67,7 +67,7 @@ class RoomClassifier(object):
 		"""
 		# input_shape is (height, width, number of channels) for images
 		input_shape = (IMG_SIZE, IMG_SIZE, 3)
-		conv_base = EfficientNetB0(weights="imagenet", include_top=False, 
+		conv_base = EfficientNetB2(weights="imagenet", include_top=False, 
 			input_shape=input_shape) # , drop_connect_rate=dropout
 		conv_base.trainable = False
 		model = models.Sequential()
@@ -83,16 +83,16 @@ class RoomClassifier(object):
 		#model.add(layers.Conv2D(128, (3,3), activation='relu'))
 		model.add(layers.GlobalAveragePooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
-		model.add(layers.Dropout(0.5, name="initial_dropout"))
+		model.add(layers.Dropout(0.3, name="fixed_dropout"))
 		# model.add(layers.Dense(64, activation='relu', name="fc_64"))
 		# model.add(layers.Dropout(0.5, name="second_dropout"))
 		model.add(layers.Dense(512, activation='relu', name="fc_512"))
-		model.add(layers.Dense(128, activation='relu', name="fc_128"))
+		# model.add(layers.Dense(128, activation='relu', name="fc_128"))
 		# model.add(layers.BatchNormalization(name="batchnorm_2"))
 		# model.add(layers.Activation('relu'))
 
 		# avoid overfitting
-		model.add(layers.Dropout(dropout, name="dropout")) # 0.3
+		model.add(layers.Dropout(dropout, name="dropout")) 
 		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc_output"))
 		model.compile(
 		    loss="sparse_categorical_crossentropy",
