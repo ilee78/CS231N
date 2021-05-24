@@ -1,8 +1,8 @@
 from absl import app
 from absl import flags
+import os
 import tensorflow as tf
 from tensorflow import keras
-import os
 
 import room_classifier
 import data_generator
@@ -46,13 +46,14 @@ def main(argv):
 	train_data, val_data, X_test, y_test = data_generator.get_data()
 	if FLAGS.finetune:
 		classifier.finetune(train_data, val_data, FLAGS.num_epochs)
-		classifier.plot_model()
+		classifier.plot_history()
 		# classifier.export_model()
 	elif FLAGS.unfreeze > 0:
 		classifier.unfreeze(train_data, val_data, FLAGS.unfreeze,
 			FLAGS.num_epochs, FLAGS.learning_rate)
-		classifier.plot_model()
+		classifier.plot_history()
 		classifier.export_model()
+	classifier.plot_saliency_visualization('bathroom')
 	class_labels, class_ints = data_generator.get_class_labels()
 	classifier.evaluate(X_test, y_test, class_ints, class_labels)
 

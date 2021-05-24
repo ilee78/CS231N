@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from mlxtend.plotting import plot_confusion_matrix
 import numpy as np
 from numpy.random import seed
+import pandas as pd
 import seaborn as sns
 import shutil
 from sklearn import model_selection
@@ -15,7 +16,9 @@ from tensorflow import keras
 from tensorflow.keras.applications import * #Efficient Net included here
 from tensorflow.keras import models, layers, optimizers
 from tensorflow.python.client import device_lib
-# TODO: clean up order of imports
+
+import data_generator
+import visualization_utils
 
 NUM_CLASSES = 66
 IMG_SIZE = 224
@@ -30,15 +33,15 @@ class RoomClassifier(object):
 	"""
 
 	def __init__(self, model_id=None, lr=3e-4, dropout=0.2):
-		self.setup()
+		self._setup()
 		self._unfrozen = False
 		if model_id is None:
-			self._model = self.create_model(lr, dropout)
-			self._model_id = self.generate_model_id()
-			self._model_path = self.format_model_path(self._model_id)
+			self._model = self._create_model(lr, dropout)
+			self._model_id = self._generate_model_id()
+			self._model_path = self._format_model_path(self._model_id)
 		else:
 			self._model_id = model_id
-			self._model_path = self.format_model_path(self._model_id)
+			self._model_path = self._format_model_path(self._model_id)
 			# Always loads models with EfficientNet frozen
 			self._model = models.load_model(self._model_path)
 			self._model.load_weights(self._model_path)
@@ -47,16 +50,16 @@ class RoomClassifier(object):
 			#     optimizer=optimizers.Adam(lr),
 			#     metrics=['sparse_categorical_accuracy'])
 			self._model.summary()
-		self._plot_prefix = self.generate_plot_prefix()
+		self._plot_prefix = self._generate_plot_prefix()
 
-	def setup(self):
+	def _setup(self):
 		"""Test whether system and GPU are configured correctly
 		"""
 		print(device_lib.list_local_devices())
 		print('Num GPUs Available: ', len(tf.config.list_physical_devices('GPU')))
 
 
-	def create_model(self, lr, dropout):
+	def _create_model(self, lr, dropout):
 		"""Load pretrained conv base model and set up for finetuning.
 
 		Args:
@@ -67,7 +70,7 @@ class RoomClassifier(object):
 		"""
 		# input_shape is (height, width, number of channels) for images
 		input_shape = (IMG_SIZE, IMG_SIZE, 3)
-		conv_base = EfficientNetB0(weights="imagenet", include_top=False, 
+		conv_base = EfficientNetB2(weights="imagenet", include_top=False, 
 			input_shape=input_shape) # , drop_connect_rate=dropout
 		conv_base.trainable = False
 		model = models.Sequential()
@@ -83,17 +86,17 @@ class RoomClassifier(object):
 		#model.add(layers.Conv2D(128, (3,3), activation='relu'))
 		model.add(layers.GlobalAveragePooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
-		model.add(layers.Dropout(0.5, name="initial_dropout"))
+		model.add(layers.Dropout(0.3, name="fixed_dropout"))
 		# model.add(layers.Dense(64, activation='relu', name="fc_64"))
 		# model.add(layers.Dropout(0.5, name="second_dropout"))
 		model.add(layers.Dense(512, activation='relu', name="fc_512"))
-		model.add(layers.Dense(128, activation='relu', name="fc_128"))
+		# model.add(layers.Dense(128, activation='relu', name="fc_128"))
 		# model.add(layers.BatchNormalization(name="batchnorm_2"))
 		# model.add(layers.Activation('relu'))
 
 		# avoid overfitting
-		model.add(layers.Dropout(dropout, name="dropout")) # 0.3
-		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="fc_output"))
+		model.add(layers.Dropout(dropout, name="dropout")) 
+		model.add(layers.Dense(NUM_CLASSES, activation="softmax", name="predictions"))
 		model.compile(
 		    loss="sparse_categorical_crossentropy",
 		    optimizer=optimizers.Adam(lr),
@@ -124,7 +127,7 @@ class RoomClassifier(object):
 			verbose=0
 		)
 
-		#reducing learning rate on plateau
+		# Reduce learning rate on plateau
 		rlrop = keras.callbacks.ReduceLROnPlateau(
 			monitor='val_loss', 
 			mode='min', 
@@ -160,8 +163,8 @@ class RoomClassifier(object):
 			Nothing, but the model is finetuned on the data.
 		"""
 		self._unfrozen_layers = num_unfreeze
-		self._model_path = self.format_model_path(self._model_id)
-		self._plot_prefix = self.generate_plot_prefix()
+		self._model_path = self._format_model_path(self._model_id)
+		self._plot_prefix = self._generate_plot_prefix()
 
 		for layer in self._model.efficientnetb0.layers[-num_unfreeze:]:
 			if not isinstance(layer, layers.BatchNormalization):
@@ -176,7 +179,7 @@ class RoomClassifier(object):
 		self._model.summary()
 		self._model.fit(train_data, epochs=num_epochs, validation_data=val_data, verbose=1)
 
-	def plot_model(self):
+	def plot_history(self):
 		history = self._model.history
 
 		plt.plot(history.history['sparse_categorical_accuracy'])
@@ -196,6 +199,53 @@ class RoomClassifier(object):
 		plt.legend(['Train', 'Validation'], loc='upper left')
 		plt.savefig(self._plot_prefix + '_loss.png')
 		plt.show()
+
+	def plot_saliency_visualization(self, class_names):
+		"""Plot saliency maps for the first image in the given classes
+		as well as class visualizations for those classes.
+
+		Args:
+			class_name: list containing the name of the classes
+
+		Returns:
+			Nothing, but displays and saves the requested plots.
+		"""
+		# Saliency map first
+		# for class_name in class_names:
+		# 	visualization_utils.plot_saliency_maps(self._model, self._plot_prefix, class_name)
+
+		# Class visualization
+		class_labels, class_ints = data_generator.get_class_labels()
+		classes = pd.DataFrame({
+			'label': class_ints,
+			'name': class_labels
+			})
+		class_list = classes.name.values
+		filter_index = visualization_utils.get_class_index(class_names, class_list)
+		layer_name = "fc" # CHANGE for each model
+		filter_index = [[i, j] for i, j in enumerate(filter_index)]
+		# get module of input/output
+		submodel = tf.keras.models.Model(
+			[self._model.inputs[0]], [self._model.get_layer(layer_name).output]
+		)
+		filters_shape = submodel.outputs[0].shape
+		output_images, loss_list = visualization_utils.optimize_filter(
+			submodel,
+			layer_name,
+			filter_index,
+			filters_shape=filters_shape,
+			# steps = 20, # how many training steps to perform
+			# lr=0.1, # gradient step size 
+			layer_dims=len(submodel.outputs[0].shape), # how many dimensions the output layer is (2 for fully connected, 4 for convolutional)
+			n_upsample=50, # how many steps to upsample
+			sigma=1.0, # the amount of blurring to perform when upsampling
+			upscaling_factor=1.01, # how much to upsample by
+			single_receptive_field=False, # whether to optimize a single neuron, or optimize over the layer
+			norm_f="sigmoid", # how to normalize/color channels between 0 and 1 (clip, sigmoid, )
+			soft_norm_std = 3, # the number of standard deviations to clip if norm_f is soft_norm (lower = more saturated)
+			normalize_grads=True
+		)
+		visualization_utils.display_features(output_images, self._plot_prefix, class_names, ncols=4, zoom=5)
 
 	def evaluate(self, X_test, y_test, class_ints, class_labels):
 		"""Evaluate the model on test data.
@@ -224,7 +274,7 @@ class RoomClassifier(object):
 		print("f1: ", f1)
 		print(classification_report(y_test, y_pred, labels=class_ints, target_names=class_labels))
 
-	def generate_model_id(self):
+	def _generate_model_id(self):
 		"""Generate a unique number for the current model.
 
 		Returns:
@@ -238,7 +288,7 @@ class RoomClassifier(object):
 		"""
 		return self._model_id
 
-	def generate_plot_prefix(self):
+	def _generate_plot_prefix(self):
 		"""Generates prefix to path of plots. Dependent on model id and whether
 		or not the model has been unfrozen.
 		"""
@@ -247,7 +297,7 @@ class RoomClassifier(object):
 			prefix += '_' + self._num_unfrozen + 'unfrozen'
 		return prefix
 
-	def format_model_path(self, model_id):
+	def _format_model_path(self, model_id):
 		"""Generate the path to where the model is/can be saved.
 
 		Args: 
