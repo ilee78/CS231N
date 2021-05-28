@@ -234,7 +234,7 @@ class RoomClassifier(object):
 			layer_name,
 			filter_index,
 			filters_shape=filters_shape,
-			# steps = 20, # how many training steps to perform
+			steps = 30, # how many training steps to perform
 			# lr=0.1, # gradient step size 
 			layer_dims=len(submodel.outputs[0].shape), # how many dimensions the output layer is (2 for fully connected, 4 for convolutional)
 			n_upsample=50, # how many steps to upsample

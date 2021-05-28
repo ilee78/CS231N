@@ -260,5 +260,5 @@ def display_features(output_images, plot_prefix, filter_titles=None, ncols=10, z
 		ax = axs.flatten()[i]
 		rgb = adjust_hsv(output_images[-1][i], sat_exp=sat_exp, val_exp=val_exp)
 		pt = ax.imshow(rgb)
-	plt.savefig(plot_prefix + '_' + '_class_visualizations.png')
+	plt.savefig(plot_prefix + '_' + '_class_visualizations.png', bbox_inches='tight')
 	plt.show()
