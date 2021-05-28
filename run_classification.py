@@ -53,7 +53,7 @@ def main(argv):
 			FLAGS.num_epochs, FLAGS.learning_rate)
 		classifier.plot_history()
 		classifier.export_model()
-	classifier.plot_saliency_visualization('bathroom')
+	classifier.plot_saliency_visualization(['bathroom', 'concert_hall', 'closet', 'poolinside'])
 	class_labels, class_ints = data_generator.get_class_labels()
 	classifier.evaluate(X_test, y_test, class_ints, class_labels)
 
