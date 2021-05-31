@@ -22,7 +22,9 @@ import visualization_utils
 
 NUM_CLASSES = 66
 IMG_SIZE = 224
-BATCH_SIZE = 32
+BATCH_SIZE = 16
+NUM_SAMPLES = 10000 # rounded down to nearest thousand
+STEPS_PER_EPOCH = NUM_SAMPLES // BATCH_SIZE
 SEED = 1234
 
 seed(SEED) # keras seed fixing
@@ -139,7 +141,7 @@ class RoomClassifier(object):
 
 		self._model.fit(
 			train_data,
-			# steps_per_epoch=train_data.n // BATCH_SIZE,
+			steps_per_epoch=STEPS_PER_EPOCH,
 			epochs=num_epochs,
 			validation_data=val_data,
 			# validation_steps=val_data.n // BATCH_SIZE,
@@ -211,8 +213,8 @@ class RoomClassifier(object):
 			Nothing, but displays and saves the requested plots.
 		"""
 		# Saliency map first
-		# for class_name in class_names:
-		# 	visualization_utils.plot_saliency_maps(self._model, self._plot_prefix, class_name)
+		for class_name in class_names:
+			visualization_utils.plot_saliency_maps(self._model, self._plot_prefix, class_name)
 
 		# Class visualization
 		class_labels, class_ints = data_generator.get_class_labels()
@@ -222,7 +224,7 @@ class RoomClassifier(object):
 			})
 		class_list = classes.name.values
 		filter_index = visualization_utils.get_class_index(class_names, class_list)
-		layer_name = "fc" # CHANGE for each model
+		layer_name = "predictions" # CHANGE for each model
 		filter_index = [[i, j] for i, j in enumerate(filter_index)]
 		# get module of input/output
 		submodel = tf.keras.models.Model(
@@ -235,7 +237,7 @@ class RoomClassifier(object):
 			filter_index,
 			filters_shape=filters_shape,
 			steps = 30, # how many training steps to perform
-			# lr=0.1, # gradient step size 
+			lr=0.1, # gradient step size 
 			layer_dims=len(submodel.outputs[0].shape), # how many dimensions the output layer is (2 for fully connected, 4 for convolutional)
 			n_upsample=50, # how many steps to upsample
 			sigma=1.0, # the amount of blurring to perform when upsampling
