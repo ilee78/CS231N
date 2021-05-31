@@ -33,6 +33,9 @@ flags.DEFINE_boolean('clean_images', False,
 flags.DEFINE_boolean('finetune', True,
 	'Whether or not to finetune the classification model.')
 
+flags.DEFINE_boolean('augment_data', False,
+	'Whether or not to augment the data used to train the model.')
+
 
 def main(argv):
 	# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -43,7 +46,10 @@ def main(argv):
 	print('Model ID: ', classifier.get_model_id())
 	if FLAGS.clean_images:
 		data_generator.clean_file_names()
-	train_data, val_data, X_test, y_test = data_generator.get_data()
+	if FLAGS.augment_data:
+		train_data, val_data, X_test, y_test = data_generator.get_augmented_data()
+	else:
+		train_data, val_data, X_test, y_test = data_generator.get_data()
 	if FLAGS.finetune:
 		classifier.finetune(train_data, val_data, FLAGS.num_epochs)
 		classifier.plot_history()
