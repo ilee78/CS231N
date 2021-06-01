@@ -72,7 +72,7 @@ class RoomClassifier(object):
 		"""
 		# input_shape is (height, width, number of channels) for images
 		input_shape = (IMG_SIZE, IMG_SIZE, 3)
-		conv_base = EfficientNetB2(weights="imagenet", include_top=False, 
+		conv_base = EfficientNetB3(weights="imagenet", include_top=False, 
 			input_shape=input_shape) # , drop_connect_rate=dropout
 		conv_base.trainable = False
 		model = models.Sequential()
