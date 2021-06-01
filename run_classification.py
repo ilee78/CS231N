@@ -1,5 +1,4 @@
-from absl import app
-from absl import flags
+from absl import app, flags
 import os
 import tensorflow as tf
 from tensorflow import keras
@@ -38,8 +37,6 @@ flags.DEFINE_boolean('augment_data', False,
 
 
 def main(argv):
-	# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-	# with tf.device(tf.DeviceSpec(device_type='GPU', device_index=0)):
 	classifier = room_classifier.RoomClassifier(FLAGS.model_id, 
 										FLAGS.learning_rate, 
 										FLAGS.dropout_rate)
