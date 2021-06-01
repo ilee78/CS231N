@@ -47,10 +47,6 @@ class RoomClassifier(object):
 			# Always loads models with EfficientNet frozen
 			self._model = models.load_model(self._model_path)
 			self._model.load_weights(self._model_path)
-			# self._model.compile(
-			# 	loss="sparse_categorical_crossentropy",
-			#     optimizer=optimizers.Adam(lr),
-			#     metrics=['sparse_categorical_accuracy'])
 			self._model.summary()
 		self._plot_prefix = self._generate_plot_prefix()
 
@@ -271,10 +267,29 @@ class RoomClassifier(object):
 		plt.tight_layout()
 		plt.savefig(self._plot_prefix + '_confusion_matrix.png')
 		plt.show()
+
+		self.top5(X_test, y_test)
 		print("precision: ", precision)
 		print("recall: ", recall)
 		print("f1: ", f1)
 		print(classification_report(y_test, y_pred, labels=class_ints, target_names=class_labels))
+
+	def top5(self, X_test, y_test):
+		"""Calculate the top1 and top5 accuracy of the model.
+		"""
+		top1 = 0.0
+		top5 = 0.0
+		class_probs = self._model.predict(X_test)
+		for i, label in enumerate(y_test):
+			class_prob = class_probs[i]
+			top_values = (-class_prob).argsort()[:5]
+			if top_values[0] == label:
+				top1 += 1.0
+			if np.isin(np.array([label]), top_values):
+				top5 += 1.0
+
+		print("Top1 acc", top1/len(y_test))
+		print("Top5 acc", top5/len(y_test))
 
 	def _generate_model_id(self):
 		"""Generate a unique number for the current model.

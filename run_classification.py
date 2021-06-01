@@ -47,10 +47,10 @@ def main(argv):
 		train_data, val_data, X_test, y_test = data_generator.get_augmented_data()
 	else:
 		train_data, val_data, X_test, y_test = data_generator.get_data()
+
 	if FLAGS.finetune:
 		classifier.finetune(train_data, val_data, FLAGS.num_epochs)
 		classifier.plot_history()
-		# classifier.export_model()
 	elif FLAGS.unfreeze > 0:
 		classifier.unfreeze(train_data, val_data, FLAGS.unfreeze,
 			FLAGS.num_epochs, FLAGS.learning_rate)
