@@ -49,7 +49,7 @@ def main(argv):
 		train_data, val_data, X_test, y_test = data_generator.get_data()
 
 	if FLAGS.finetune:
-		classifier.finetune(train_data, val_data, FLAGS.num_epochs)
+		classifier.finetune(train_data, val_data, FLAGS.num_epochs, FLAGS.augment_data)
 		classifier.plot_history()
 	elif FLAGS.unfreeze > 0:
 		classifier.unfreeze(train_data, val_data, FLAGS.unfreeze,

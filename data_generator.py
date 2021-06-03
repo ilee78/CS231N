@@ -41,31 +41,19 @@ def make_output_dir():
 
 
 # Create training, validation, test sets WITHOUT augmentation
-def get_data(augment=False):
+def get_data():
     make_output_dir()
 
-    if augment:
-        train = tf.keras.preprocessing.image_dataset_from_directory(
-            AUGMENT_DIR,
-            labels="inferred",
-            label_mode="int",
-            class_names=input_files,
-            image_size=(224, 224),
-            shuffle=True,
-            seed=SEED,
-            batch_size=16,
-        )
-    else:
-        train = tf.keras.preprocessing.image_dataset_from_directory(
-            TRAIN_DIR,
-            labels="inferred",
-            label_mode="int",
-            class_names=input_files,
-            image_size=(224, 224),
-            shuffle=True,
-            seed=SEED,
-            batch_size=16,
-        )
+    train = tf.keras.preprocessing.image_dataset_from_directory(
+        TRAIN_DIR,
+        labels="inferred",
+        label_mode="int",
+        class_names=input_files,
+        image_size=(224, 224),
+        shuffle=True,
+        seed=SEED,
+        batch_size=16,
+    )
 
     val = tf.keras.preprocessing.image_dataset_from_directory(
         VAL_DIR,
@@ -106,11 +94,7 @@ def get_data(augment=False):
 def get_augmented_data():
     make_output_dir()
     if os.path.isdir(AUGMENT_DIR):
-        return get_data(augment=True)
         print("Augmented image directory already exists. Please delete calling this function.")
-    #else:
-        #os.mkdir(AUGMENT_DIR)
-        #shutil.copytree(TRAIN_DIR, AUGMENT_DIR) 
 
     # Data augmentation parameters for training
     train_datagen = ImageDataGenerator(
