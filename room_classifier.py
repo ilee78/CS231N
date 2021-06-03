@@ -34,7 +34,7 @@ class RoomClassifier(object):
 	"""Classify rooms based on input images.
 	"""
 
-	def __init__(self, model_id=None, lr=3e-4, dropout=0.2):
+	def __init__(self, model_id=None, lr=3e-4, dropout=0.5):
 		self._setup()
 		self._unfrozen = False
 		if model_id is None:
@@ -68,7 +68,7 @@ class RoomClassifier(object):
 		"""
 		# input_shape is (height, width, number of channels) for images
 		input_shape = (IMG_SIZE, IMG_SIZE, 3)
-		conv_base = EfficientNetB3(weights="imagenet", include_top=False, 
+		conv_base = EfficientNetB0(weights="imagenet", include_top=False, 
 			input_shape=input_shape) # , drop_connect_rate=dropout
 		conv_base.trainable = False
 		model = models.Sequential()
@@ -78,19 +78,10 @@ class RoomClassifier(object):
 		model.add(layers.experimental.preprocessing.Rescaling(1./IMG_SIZE, name="rescaling"))
 
 		# rebuild top and add some dense layers
-		# model.add(layers.Conv2D(64, (3,3), activation='relu'))
-		#model.add(layers.BatchNormalization())
-		# model.add(layers.MaxPool2D((2, 2), 2, padding='same', name="max_pool"))
-		#model.add(layers.Conv2D(128, (3,3), activation='relu'))
 		model.add(layers.GlobalAveragePooling2D(name="gap"))
 		model.add(layers.BatchNormalization(name="batchnorm"))
 		model.add(layers.Dropout(0.3, name="fixed_dropout"))
-		# model.add(layers.Dense(64, activation='relu', name="fc_64"))
-		# model.add(layers.Dropout(0.5, name="second_dropout"))
 		model.add(layers.Dense(512, activation='relu', name="fc_512"))
-		# model.add(layers.Dense(128, activation='relu', name="fc_128"))
-		# model.add(layers.BatchNormalization(name="batchnorm_2"))
-		# model.add(layers.Activation('relu'))
 
 		# avoid overfitting
 		model.add(layers.Dropout(dropout, name="dropout")) 
@@ -103,13 +94,14 @@ class RoomClassifier(object):
 		model.summary()
 		return model
 
-	def finetune(self, train_data, val_data, num_epochs):
+	def finetune(self, train_data, val_data, num_epochs, data_augmented=False):
 		"""Finetune the model using the input data.
 
 		Args:
 			train_data: training data
 			val_data: validation data
 			num_epochs: number of epochs to train the data for
+			data_augmented: whether or not the data was augmened
 
 		Returns:
 			Nothing, but the model is finetuned on the data.
@@ -137,7 +129,7 @@ class RoomClassifier(object):
 
 		self._model.fit(
 			train_data,
-			steps_per_epoch=STEPS_PER_EPOCH,
+			steps_per_epoch=STEPS_PER_EPOCH if data_augmented else None,
 			epochs=num_epochs,
 			validation_data=val_data,
 			# validation_steps=val_data.n // BATCH_SIZE,
