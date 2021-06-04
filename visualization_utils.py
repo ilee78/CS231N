@@ -1,3 +1,7 @@
+"""Visualization code for saliency maps and class visualization.
+	Source: https://github.com/timsainb/tensorflow-2-feature-visualization-notebooks
+"""
+
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
